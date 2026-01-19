@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- **Template sync with backend API** - Custom templates now persist to the server
+  - Loads templates from backend on screen mount
+  - Creates new templates via `POST /api/templates`
+  - Supports deleting custom templates via long-press
+  - Cloud icon indicates server-synced templates
+  - Files affected: `client/src/screens/TemplatesScreen.tsx`
+
 - **Audio playback for timer phase transitions** - Added sound effects for work/rest/complete/countdown events
   - Uses `expo-av` with background audio mode enabled
   - Sounds preloaded on app start for better performance

@@ -1,12 +1,16 @@
 import axios from 'axios';
 import * as Device from 'expo-device';
+import * as Crypto from 'expo-crypto';
 import { API_BASE_URL } from '../config';
-import { v4 as uuidv4 } from 'uuid';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DEVICE_ID_KEY = '@device_id';
 
 let deviceId: string | null = null;
+
+const generateUUID = (): string => {
+  return Crypto.randomUUID();
+};
 
 const getDeviceId = async (): Promise<string> => {
   if (deviceId) return deviceId;
@@ -17,7 +21,7 @@ const getDeviceId = async (): Promise<string> => {
     return stored;
   }
 
-  const newId = Device.modelName ? `${Device.modelName}-${uuidv4()}` : uuidv4();
+  const newId = Device.modelName ? `${Device.modelName}-${generateUUID()}` : generateUUID();
   await AsyncStorage.setItem(DEVICE_ID_KEY, newId);
   deviceId = newId;
   return newId;

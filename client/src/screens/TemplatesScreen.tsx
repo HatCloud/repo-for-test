@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { COLORS, DEFAULT_TEMPLATES } from '../config';
 import { Ionicons } from '@expo/vector-icons';
 import { useTimerContext } from '../context/TimerContext';
+import { getTemplates, createTemplate, deleteTemplate, Template } from '../services/api';
 
 interface TemplatesScreenProps {
   navigation: any;
@@ -23,14 +26,14 @@ interface LocalTemplate {
   rounds: number;
   sets: number;
   set_rest_duration: number;
+  isRemote?: boolean;
 }
 
 export const TemplatesScreen = ({ navigation }: TemplatesScreenProps) => {
   const { setConfig, setSelectedTemplateName, selectedTemplateName } = useTimerContext();
   const [showCreate, setShowCreate] = useState(false);
-  const [templates] = useState<LocalTemplate[]>(
-    DEFAULT_TEMPLATES.map((t, i) => ({ ...t, id: `default-${i}` }))
-  );
+  const [loading, setLoading] = useState(true);
+  const [remoteTemplates, setRemoteTemplates] = useState<Template[]>([]);
   const [newTemplate, setNewTemplate] = useState({
     name: '',
     work_duration: '20',
@@ -39,6 +42,27 @@ export const TemplatesScreen = ({ navigation }: TemplatesScreenProps) => {
     sets: '1',
     set_rest_duration: '60',
   });
+
+  // Combine default templates with remote templates
+  const templates: LocalTemplate[] = [
+    ...DEFAULT_TEMPLATES.map((t, i) => ({ ...t, id: `default-${i}`, isRemote: false })),
+    ...remoteTemplates.map((t) => ({ ...t, isRemote: true })),
+  ];
+
+  const loadTemplates = useCallback(async () => {
+    try {
+      const data = await getTemplates();
+      setRemoteTemplates(data);
+    } catch (error) {
+      console.log('Failed to load templates from server:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTemplates();
+  }, [loadTemplates]);
 
   const handleSelectTemplate = (template: LocalTemplate) => {
     setConfig({
@@ -52,21 +76,73 @@ export const TemplatesScreen = ({ navigation }: TemplatesScreenProps) => {
     navigation.goBack();
   };
 
-  const handleCreateTemplate = () => {
+  const handleCreateTemplate = async () => {
     if (!newTemplate.name.trim()) {
+      Alert.alert('错误', '请输入模板名称');
       return;
     }
-    const template: LocalTemplate = {
-      id: `custom-${Date.now()}`,
-      name: newTemplate.name,
-      work_duration: parseInt(newTemplate.work_duration) || 20,
-      rest_duration: parseInt(newTemplate.rest_duration) || 10,
-      rounds: parseInt(newTemplate.rounds) || 8,
-      sets: parseInt(newTemplate.sets) || 1,
-      set_rest_duration: parseInt(newTemplate.set_rest_duration) || 60,
-    };
-    handleSelectTemplate(template);
-    setShowCreate(false);
+
+    try {
+      const templateData = {
+        name: newTemplate.name,
+        work_duration: parseInt(newTemplate.work_duration) || 20,
+        rest_duration: parseInt(newTemplate.rest_duration) || 10,
+        rounds: parseInt(newTemplate.rounds) || 8,
+        sets: parseInt(newTemplate.sets) || 1,
+        set_rest_duration: parseInt(newTemplate.set_rest_duration) || 60,
+      };
+
+      // Save to backend
+      const savedTemplate = await createTemplate(templateData);
+
+      // Update local state
+      setRemoteTemplates((prev) => [...prev, savedTemplate]);
+
+      // Select the new template
+      handleSelectTemplate({ ...savedTemplate, isRemote: true });
+      setShowCreate(false);
+
+      // Reset form
+      setNewTemplate({
+        name: '',
+        work_duration: '20',
+        rest_duration: '10',
+        rounds: '8',
+        sets: '1',
+        set_rest_duration: '60',
+      });
+    } catch (error) {
+      console.error('Failed to create template:', error);
+      Alert.alert('保存失败', '无法同步到服务器，请检查网络连接');
+    }
+  };
+
+  const handleDeleteTemplate = async (template: LocalTemplate) => {
+    if (!template.isRemote) {
+      Alert.alert('提示', '默认模板无法删除');
+      return;
+    }
+
+    Alert.alert(
+      '删除模板',
+      `确定要删除 "${template.name}" 吗？`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteTemplate(template.id);
+              setRemoteTemplates((prev) => prev.filter((t) => t.id !== template.id));
+            } catch (error) {
+              console.error('Failed to delete template:', error);
+              Alert.alert('删除失败', '无法删除模板');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -127,30 +203,38 @@ export const TemplatesScreen = ({ navigation }: TemplatesScreenProps) => {
       )}
 
       <ScrollView style={styles.list}>
-        {templates.map((template) => (
-          <TouchableOpacity
-            key={template.id}
-            style={[
-              styles.templateCard,
-              selectedTemplateName === template.name && styles.templateCardSelected,
-            ]}
-            onPress={() => handleSelectTemplate(template)}
-          >
-            <View style={styles.templateInfo}>
-              <View style={styles.templateHeader}>
-                <Text style={styles.templateName}>{template.name}</Text>
-                {selectedTemplateName === template.name && (
-                  <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
-                )}
-              </View>
-              <Text style={styles.templateDetails}>
-                {template.work_duration}s 运动 / {template.rest_duration}s 休息 × {template.rounds} 轮
-                {template.sets > 1 && ` × ${template.sets} 组`}
+        {loading ? (
+          <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
+        ) : (
+          templates.map((template) => (
+            <TouchableOpacity
+              key={template.id}
+              style={[
+                styles.templateCard,
+                selectedTemplateName === template.name && styles.templateCardSelected,
+              ]}
+              onPress={() => handleSelectTemplate(template)}
+              onLongPress={() => handleDeleteTemplate(template)}
+            >
+              <View style={styles.templateInfo}>
+                <View style={styles.templateHeader}>
+                  <Text style={styles.templateName}>{template.name}</Text>
+                  {template.isRemote && (
+                    <Ionicons name="cloud" size={14} color={COLORS.textSecondary} style={{ marginLeft: 6 }} />
+                  )}
+                  {selectedTemplateName === template.name && (
+                    <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
+                  )}
+                </View>
+                <Text style={styles.templateDetails}>
+                  {template.work_duration}s 运动 / {template.rest_duration}s 休息 × {template.rounds} 轮
+                  {template.sets > 1 && ` × ${template.sets} 组`}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
-        ))}
+          ))
+        )}
       </ScrollView>
     </View>
   );
