@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- **Workout record sync with backend API** - Training records now persist to the server
+  - HistoryScreen fetches records and stats from backend on mount
+  - Pull-to-refresh support for history list
+  - Auto-saves workout record when timer completes
+  - Files affected: `client/src/screens/HistoryScreen.tsx`, `client/src/screens/HomeScreen.tsx`
+
 - **Template sync with backend API** - Custom templates now persist to the server
   - Loads templates from backend on screen mount
   - Creates new templates via `POST /api/templates`

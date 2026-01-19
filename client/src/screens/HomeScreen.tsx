@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { useTimer, TimerPhase } from '../hooks/useTimer';
 import { COLORS } from '../config';
 import { Ionicons } from '@expo/vector-icons';
 import { useTimerContext } from '../context/TimerContext';
+import { saveRecord } from '../services/api';
 
 const { width } = Dimensions.get('window');
 const RING_SIZE = width * 0.75;
@@ -62,10 +63,35 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const { config, state, start, pause, resume, reset, updateConfig } = useTimer(contextConfig);
   const [showSettings, setShowSettings] = useState(false);
   const [tempConfig, setTempConfig] = useState(config);
+  const hasSavedRecord = useRef(false);
 
   useEffect(() => {
     updateConfig(contextConfig);
   }, [contextConfig]);
+
+  // Save workout record when timer completes
+  useEffect(() => {
+    if (state.phase === 'complete' && !hasSavedRecord.current) {
+      hasSavedRecord.current = true;
+      saveRecord({
+        template_id: null,
+        template_name: selectedTemplateName,
+        work_duration: config.workDuration,
+        rest_duration: config.restDuration,
+        rounds: config.rounds,
+        sets: config.sets,
+        completed_rounds: state.currentRound,
+        completed_sets: state.currentSet,
+        total_time: state.totalTime,
+      }).catch((error) => {
+        console.error('Failed to save workout record:', error);
+      });
+    }
+    // Reset the flag when starting a new workout
+    if (state.phase === 'work' && state.currentRound === 1 && state.currentSet === 1) {
+      hasSavedRecord.current = false;
+    }
+  }, [state.phase, state.currentRound, state.currentSet]);
 
   const getProgress = (): number => {
     if (state.phase === 'idle') return 1;

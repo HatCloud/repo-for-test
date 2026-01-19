@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { COLORS } from '../config';
 import { Ionicons } from '@expo/vector-icons';
+import { getRecords, getStats, WorkoutRecord, Stats } from '../services/api';
 
 interface HistoryScreenProps {
   navigation: any;
@@ -29,38 +32,50 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-// 模拟数据
-const mockRecords = [
-  {
-    id: '1',
-    template_name: '经典 HIIT',
-    work_duration: 20,
-    rest_duration: 10,
-    rounds: 8,
-    completed_rounds: 8,
-    total_time: 240,
-    completed_at: '2024-01-19T10:30:00Z',
-  },
-  {
-    id: '2',
-    template_name: 'Tabata',
-    work_duration: 20,
-    rest_duration: 10,
-    rounds: 8,
-    completed_rounds: 6,
-    total_time: 180,
-    completed_at: '2024-01-18T09:15:00Z',
-  },
-];
-
-const mockStats = {
-  total_workouts: 15,
-  total_time: 3600,
-  total_rounds: 120,
-  avg_workout_time: 240,
-};
-
 export const HistoryScreen = ({ navigation }: HistoryScreenProps) => {
+  const [records, setRecords] = useState<WorkoutRecord[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    total_workouts: 0,
+    total_time: 0,
+    total_rounds: 0,
+    avg_workout_time: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [recordsData, statsData] = await Promise.all([
+        getRecords(),
+        getStats(),
+      ]);
+      setRecords(recordsData.records);
+      setStats(statsData);
+    } catch (error) {
+      console.log('Failed to load history:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData();
+  }, [loadData]);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -74,30 +89,35 @@ export const HistoryScreen = ({ navigation }: HistoryScreenProps) => {
       {/* Stats Cards */}
       <View style={styles.statsContainer}>
         <View style={styles.statsCard}>
-          <Text style={styles.statsValue}>{mockStats.total_workouts}</Text>
+          <Text style={styles.statsValue}>{stats.total_workouts}</Text>
           <Text style={styles.statsLabel}>总训练次数</Text>
         </View>
         <View style={styles.statsCard}>
-          <Text style={styles.statsValue}>{Math.floor(mockStats.total_time / 60)}</Text>
+          <Text style={styles.statsValue}>{Math.floor(stats.total_time / 60)}</Text>
           <Text style={styles.statsLabel}>总时长(分钟)</Text>
         </View>
         <View style={styles.statsCard}>
-          <Text style={styles.statsValue}>{mockStats.total_rounds}</Text>
+          <Text style={styles.statsValue}>{stats.total_rounds}</Text>
           <Text style={styles.statsLabel}>总轮数</Text>
         </View>
       </View>
 
       {/* History List */}
       <Text style={styles.sectionTitle}>最近记录</Text>
-      <ScrollView style={styles.list}>
-        {mockRecords.length === 0 ? (
+      <ScrollView
+        style={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
+        }
+      >
+        {records.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="fitness-outline" size={48} color={COLORS.textSecondary} />
             <Text style={styles.emptyText}>暂无训练记录</Text>
             <Text style={styles.emptySubtext}>完成一次训练后会显示在这里</Text>
           </View>
         ) : (
-          mockRecords.map((record) => (
+          records.map((record) => (
             <View key={record.id} style={styles.recordCard}>
               <View style={styles.recordHeader}>
                 <Text style={styles.recordName}>{record.template_name}</Text>
@@ -137,6 +157,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     paddingTop: 60,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
