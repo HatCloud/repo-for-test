@@ -1,96 +1,163 @@
-# 🚀 Prompt2Repo 准入考核 (Entrance Challenge)
+# Fitness Timer App
 
-## 📌 考核背景
-本项目寻找具备 **"AI Native" (Vibe Coding)** 能力的资深工程师。我们需要你展示如何利用 **Cursor / Trae / Claude Code** 等 AI 工具，快速构建**工程化标准**的应用。
+一款 HIIT 健身计时器应用，支持自定义训练模板、后台运行和触感反馈。
 
-> **核心考核点**：
-> 1. **AI 驾驭能力**：不仅是生成代码，而是生成架构、调试 Bug、优化工程。
-> 2. **Docker 交付标准**：强制容器化交付，拒绝“在我本地能跑”的代码。
-> 3. **全栈审美**：拒绝简陋 UI，需具备商业级交付意识。
+## 技术栈
 
----
+- **移动端**: React Native (Expo SDK 54)
+- **后端**: Node.js + Express + SQLite (sql.js)
+- **容器化**: Docker + docker-compose
 
-## 🎯 题目菜单 (任选其一)
+## 功能特性
 
-请根据你的技术栈，从以下 5 个题目中**任选 1 个**完成。
+- 可自定义运动/休息时长、轮数、组数
+- 预设训练模板（经典 HIIT、Tabata、新手入门）
+- 实时倒计时进度环显示
+- 阶段切换触感反馈
+- 训练历史记录与统计
 
-### A 纯前端：动态主题仪表盘 (SaaS Dashboard)
-* **目标**：构建一个销售数据看板，支持 Light/Dark 主题切换。
-* **技术**：React/Vue + Echarts/Recharts + **Tailwind/AntD (必选)**。
-* **交付**：将前端静态资源或服务容器化，实现一键启动。
+## 快速开始
 
-### B 纯后端：短链接生成服务 (URL Shortener)
-* **目标**：实现长链接转短链接的 REST API (POST/GET)，含重定向逻辑。
-* **技术**：Python/Go/Java/Node + Redis/SQLite。
-* **交付**：API 服务与数据库均需 Docker 化。
+### 1. 启动后端服务
 
-### C 全栈：看板任务管理 (Kanban Board) —— ⭐ 推荐
-* **目标**：实现类似 Trello 的任务拖拽 (Todo/Doing/Done) 及数据同步。
-* **技术**：Web 前端 + 后端 API + 数据库。
-* **交付**：前后端及数据库必须通过 `docker compose` 一键联调。
+```bash
+# 在项目根目录执行
+docker compose up --build
+```
 
-### D 跨平台/小程序：咖啡点单 (Coffee Order App)
-* **目标**：模拟点单流程（商品列表、规格选择、购物车）。
-* **技术**：Uni-app / Taro / Flutter / 微信原生。
-* **交付**：**客户端代码本地运行** + **后端 API/DB 必须 Docker 化**。
+后端将在 `http://localhost:8000` 启动，可通过以下命令验证：
 
-### E 原生移动端：健身计时器 (Fitness Timer)
-* **目标**：HIIT 倒计时工具，支持后台运行和声音提示。
-* **技术**：Swift / Kotlin / React Native。
-* **交付**：**App 代码本地运行** + **后端 API/DB 必须 Docker 化**。
+```bash
+curl http://localhost:8000/health
+# 返回: {"status":"ok","timestamp":"..."}
+```
 
----
+### 2. 启动移动端 App
 
-## 📦 统一交付标准 (Unified Delivery Standard)
+```bash
+# 进入客户端目录
+cd client
 
-本项目强制要求 **Docker 化交付**。请根据你选择的题目类型，遵守以下目录结构和规范：
+# 安装依赖
+npm install
 
-### 1. 针对 Web / 全栈 / 纯后端 (Type A, B, C)
-你的仓库必须包含完整的前后端容器配置。
-* **结构示例**：
-  ```text
-  ├── frontend/ (含 Dockerfile)
-  ├── backend/  (含 Dockerfile)
-  └── docker-compose.yml  <-- 必须包含，负责启动所有服务
-### 验收标准
-阅卷官执行 `docker compose up` 后，浏览器打开 `localhost:xxxx` 即可正常使用。
+# 启动 Expo 开发服务器
+npm start
+```
 
-### 2. 针对 移动端/小程序
-我们理解 App 无法在容器内运行，因此采取
-**“后端装箱，前端裸奔”**的策略。
+然后按提示选择运行方式：
+- 按 `i` 在 iOS 模拟器中运行
+- 按 `a` 在 Android 模拟器中运行
+- 扫描二维码在 Expo Go 中运行（需要真机）
 
-* **结构示例**：
-  ```text
-  ├── client/             <-- 放置 App/小程序源码 (无需 Docker)
-  ├── backend/            <-- 放置后端 API 源码 (必须 Docker)
-  └── docker-compose.yml  <-- 仅负责启动 backend 和 db
-  ### 验收标准
-* **GitHub Actions** 必须能成功构建 Backend 镜像。
-* **必须提供录屏**：展示 App 在模拟器/真机上运行，并成功连接 Docker 后端的演示。
+### 3. 网络配置（重要）
 
-> ⚠️ **网络连接提示 (Crucial Tip)**：
-> 在模拟器中访问 Docker 后端时，**不能使用 `localhost`**：
-> * **Android 模拟器**：请尝试 `10.0.2.2:端口`
-> * **真机调试**：请使用电脑的局域网 IP (如 `192.168.1.x`)
-> * *请在代码中预留 Base URL 配置项。*
+App 会根据平台自动选择后端地址：
+- **iOS 模拟器**: `http://localhost:8000`
+- **Android 模拟器**: `http://10.0.2.2:8000`
+- **真机调试**: 需要手动修改 `client/src/config.ts` 中的 IP 地址
 
----
+**真机调试配置方法**：
 
-## 🚨 验收红线 (Red Lines)
-**出现以下情况将直接淘汰，不予人工审核：**
+编辑 `client/src/config.ts`，将 `getBaseUrl` 函数中的生产环境 URL 改为你电脑的局域网 IP：
 
-* ❌ **CI 构建失败**：GitHub Actions 页面显示红色 ❌ (Build Failed)。
-* ❌ **无 Docker 配置**：根目录找不到有效 `docker-compose.yml`。
-* ❌ **UI 审美缺失**：界面排版混乱、无间距、使用浏览器默认样式。
-* ❌ **缺少演示视频**：移动端/小程序未提供真机运行录屏。
+```typescript
+const getBaseUrl = () => {
+  if (__DEV__) {
+    if (Platform.OS === 'android') {
+      return 'http://10.0.2.2:8000';
+    }
+    return 'http://localhost:8000';
+  }
+  // 生产环境 URL - 真机调试时修改这里
+  return 'http://192.168.x.x:8000';  // ← 替换为你的局域网 IP
+};
+```
 
----
+查看电脑局域网 IP：
+```bash
+# macOS
+ifconfig | grep "inet " | grep -v 127.0.0.1
 
-## 🚀 操作流程 (How to Start)
+# Windows
+ipconfig | findstr /i "IPv4"
+```
 
-1.  **领取考卷**：点击本页面右上角绿色按钮 **[Use this template]** -> **Create a new repository**。
-    * *注意：请将你的仓库设为 **Public**，否则 Actions 可能无法运行。*
-2.  **AI 开发**：使用 Cursor/Antigravity 等工具完成代码。
-3.  **机器自测**：Push 代码后，点击仓库顶部的 **[Actions]** 标签，确保显示 ✅ (Green)。
-4.  **提交作业**：
-    * 请将 **GitHub 仓库链接** + **Actions 绿灯截图** + **演示视频** 提交给招聘方。
+## 项目结构
+
+```
+├── client/                 # React Native App
+│   ├── App.tsx            # 应用入口
+│   ├── src/
+│   │   ├── screens/       # 页面组件
+│   │   ├── components/    # UI 组件
+│   │   ├── hooks/         # 自定义 Hooks
+│   │   ├── context/       # 全局状态
+│   │   ├── services/      # API 服务
+│   │   └── config.ts      # 配置文件
+│   └── package.json
+│
+├── backend/               # Node.js 后端
+│   ├── src/
+│   │   ├── index.ts      # 服务入口
+│   │   ├── routes/       # API 路由
+│   │   └── db/           # 数据库配置
+│   ├── Dockerfile
+│   └── package.json
+│
+├── docker-compose.yml     # Docker 编排配置
+├── CHANGELOG.md          # 变更日志
+└── CLAUDE.md             # AI 开发指南
+```
+
+## API 接口
+
+所有接口需要 `X-Device-ID` 请求头。
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/health` | 健康检查 |
+| GET | `/api/templates` | 获取训练模板列表 |
+| POST | `/api/templates` | 创建训练模板 |
+| DELETE | `/api/templates/:id` | 删除训练模板 |
+| GET | `/api/records` | 获取训练记录 |
+| POST | `/api/records` | 保存训练记录 |
+| GET | `/api/records/stats` | 获取训练统计 |
+
+## 开发命令
+
+```bash
+# 后端开发模式（热重载）
+cd backend && npm run dev
+
+# 后端构建
+cd backend && npm run build
+
+# 客户端启动
+cd client && npm start
+
+# Docker 构建并启动
+docker compose up --build
+
+# 查看后端日志
+docker compose logs -f backend
+```
+
+## 故障排除
+
+### App 启动崩溃
+确保 `react-native-screens` 版本为 `~4.16.0`（Expo SDK 54 兼容版本）。
+
+### 无法连接后端
+1. 确认 Docker 容器正在运行：`docker compose ps`
+2. 确认后端健康：`curl http://localhost:8000/health`
+3. Android 模拟器使用 `10.0.2.2` 而非 `localhost`
+
+### Metro 缓存问题
+```bash
+cd client && npx expo start --clear
+```
+
+## License
+
+MIT
