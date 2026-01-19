@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -8,10 +8,21 @@ import { TemplatesScreen } from './src/screens/TemplatesScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { COLORS } from './src/config';
 import { TimerProvider } from './src/context/TimerContext';
+import { initAudio, preloadSounds, unloadSounds } from './src/utils/sound';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  useEffect(() => {
+    // Initialize audio for background playback
+    initAudio();
+    preloadSounds();
+
+    return () => {
+      unloadSounds();
+    };
+  }, []);
+
   return (
     <TimerProvider>
       <View style={styles.container}>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { COLORS } from '../config';
 
 interface ProgressRingProps {
@@ -19,45 +20,38 @@ export const ProgressRing = ({
   backgroundColor = COLORS.surface,
   children,
 }: ProgressRingProps) => {
-  // 简化版本：使用 View 替代 SVG
-  const innerSize = size - strokeWidth * 2;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - Math.max(0, Math.min(1, progress)));
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      {/* Outer ring (background) */}
-      <View
-        style={[
-          styles.ring,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            borderWidth: strokeWidth,
-            borderColor: backgroundColor,
-          },
-        ]}
-      />
-      {/* Progress indicator - simplified as a colored border section */}
-      <View
-        style={[
-          styles.ring,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            borderWidth: strokeWidth,
-            borderColor: color,
-            borderTopColor: progress > 0.25 ? color : 'transparent',
-            borderRightColor: progress > 0.5 ? color : 'transparent',
-            borderBottomColor: progress > 0.75 ? color : 'transparent',
-            borderLeftColor: progress > 0 ? color : 'transparent',
-            transform: [{ rotate: '-90deg' }],
-            opacity: progress > 0 ? 1 : 0,
-          },
-        ]}
-      />
+      <Svg width={size} height={size} style={styles.svg}>
+        {/* Background circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={backgroundColor}
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+        {/* Progress circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
       {/* Inner content */}
-      <View style={[styles.content, { width: innerSize, height: innerSize }]}>
+      <View style={styles.content}>
         {children}
       </View>
     </View>
@@ -70,7 +64,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  ring: {
+  svg: {
     position: 'absolute',
   },
   content: {
